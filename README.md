@@ -218,14 +218,3 @@ Notes:
 
 ---
 
-## Project Information
-
-- **Application name:** HealthData Studio
-- **File:** `healthdata_studio.html`
-- **Author:** *[Your Name]*
-- **Programme / Course:** *[Course Name]*
-- **Institution:** *[Institution Name]*
-- **Date:** *[Submission Date]*
-- **Version:** 1.0
-
-Sample data in this project are synthetic and do not describe real patients.
