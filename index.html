@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>HealthData Studio</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<style>
+:root{--ink:#14262b;--mute:#5f7378;--line:#dfe7e5;--acc:#1f7a6d;--accd:#16594f;--tint:#eef6f4;--warn:#9a6a14;--warnbg:#fdf5e4;--bad:#b3392f;--badbg:#fdeeec;--hd:#0f3d3e}
+*{box-sizing:border-box}
+html,body{background:#fff}
+body{margin:0;color:var(--ink);font:15.5px/1.55 "IBM Plex Sans",system-ui,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{margin:0;line-height:1.25;font-weight:600}
+p{margin:6px 0}a{color:var(--acc);font-weight:500}
+.mute{color:var(--mute)}.small{font-size:13.5px}
+button{font:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.btn{font-weight:600;border:1px solid var(--acc);background:var(--acc);color:#fff;border-radius:8px;padding:10px 18px;transition:background .15s}
+.btn:hover{background:var(--accd)}.btn.alt{background:#fff;color:var(--acc)}.btn.alt:hover{background:var(--tint)}
+.btn.sm{padding:6px 12px;font-size:14px}.btn.wide{width:100%}.btn[disabled]{opacity:.45;cursor:not-allowed}
+
+/* ---------- authentication ---------- */
+.auth{min-height:100vh;display:grid;grid-template-columns:1fr 1fr}
+.side{background:var(--tint);padding:48px clamp(24px,5vw,72px);display:flex;flex-direction:column;justify-content:center;border-right:1px solid var(--line)}
+.side h2{font-size:clamp(24px,3vw,34px);margin:34px 0 10px;max-width:460px}
+.side p{max-width:440px}
+.feat{list-style:none;padding:0;margin:26px 0 0;display:grid;gap:14px;max-width:460px}
+.feat li{display:flex;gap:12px;align-items:flex-start}
+.feat svg{flex:none;margin-top:3px}
+.pane{display:grid;place-items:center;padding:36px 20px}
+.box{width:100%;max-width:410px}
+.box h1{font-size:27px}
+.tabs{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--line);margin:22px 0 18px}
+.tabs button{background:none;border:0;border-bottom:3px solid transparent;padding:10px;font-weight:600;color:var(--mute)}
+.tabs button[aria-selected="true"]{color:var(--acc);border-color:var(--acc)}
+.fld{margin-bottom:14px}.fld label{display:block;font-size:14px;font-weight:500;margin-bottom:5px}
+.ctl{position:relative}
+input[type=text],input[type=email],input[type=password]{width:100%;font:inherit;padding:11px 13px;border:1px solid #c5d3d0;border-radius:8px;background:#fff;color:var(--ink)}
+input:focus{outline:3px solid #b9ddd6;border-color:var(--acc)}
+.eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:0;color:var(--acc);font-weight:600;font-size:13.5px;padding:6px 8px}
+.err{color:var(--bad);font-size:14px;min-height:20px;margin:0 0 10px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:17px}
+.logo{width:34px;height:34px;border-radius:8px;background:var(--hd);display:grid;place-items:center}
+.fine{border-top:1px solid var(--line);padding-top:12px;margin-top:18px}
+
+/* ---------- application shell ---------- */
+.top{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid var(--line)}
+.bar1{max-width:1080px;margin:0 auto;padding:calc(10px + env(safe-area-inset-top,0px)) 18px 10px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.usr{display:flex;align-items:center;gap:12px;font-size:14.5px}
+.usr span{color:var(--mute)}.usr b{color:var(--ink)}
+.stp{max-width:1080px;margin:0 auto;padding:0 18px;display:flex;overflow-x:auto;list-style:none}
+.stp li{flex:1 0 auto}
+.si{width:100%;display:flex;align-items:center;gap:10px;padding:11px 14px;background:none;border:0;border-bottom:3px solid transparent;color:var(--mute);font-weight:500;white-space:nowrap;text-align:left}
+.si i{flex:none;width:26px;height:26px;border-radius:50%;border:1.5px solid #b8c8c5;display:grid;place-items:center;font:600 13px "IBM Plex Sans",sans-serif;font-style:normal}
+.si:hover:not([disabled]){color:var(--acc)}
+.si.on{color:var(--acc);border-color:var(--acc);font-weight:600}.si.on i{background:var(--acc);border-color:var(--acc);color:#fff}
+.si.done i{background:var(--tint);border-color:var(--acc);color:var(--acc)}
+.si[disabled]{opacity:.45;cursor:not-allowed}
+main{max-width:1080px;margin:0 auto;padding:26px 18px 80px}
+.ph{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:flex-start;margin-bottom:6px}
+.ph h1{font-size:27px}.ph p{margin-top:4px;max-width:620px}
+.chip{display:flex;gap:10px;align-items:center;flex-wrap:wrap;border:1px solid var(--line);background:var(--tint);border-radius:8px;padding:8px 12px;font-size:14px}
+.chip span{font-weight:600;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+h3{font-size:17px;margin:32px 0 10px;display:flex;gap:10px;align-items:baseline;padding-bottom:7px;border-bottom:1px solid var(--line)}
+h3 em{font-style:normal;color:var(--acc);font-weight:700;min-width:30px}
+h4{font-size:15.5px;margin-bottom:10px}
+.card{border:1px solid var(--line);border-radius:10px;padding:18px;margin-top:12px;background:#fff}
+#drop{border:2px dashed #b8cfca;border-radius:12px;padding:38px 16px;text-align:center;background:#fff;cursor:pointer;transition:background .15s,border-color .15s}
+#drop:hover,#drop.on{border-color:var(--acc);background:var(--tint)}
+#drop b{font-size:17px}
+.map{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.map label{font-size:14px;color:var(--mute);display:block}
+select{width:100%;font:inherit;padding:8px;border:1px solid #c5d3d0;border-radius:8px;background:#fff;color:var(--ink);margin-top:3px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px}
+.meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:12px}
+.meta div{background:#fff;padding:10px 14px;font-size:14.5px;overflow-wrap:anywhere}.meta b{display:block;font-size:12.5px;color:var(--mute);font-weight:500}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.kpi{border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.kpi b{display:block;font-size:28px;font-weight:700;color:var(--acc);line-height:1.2}.kpi span{font-size:14px;color:var(--mute)}
+.tw{overflow:auto;border:1px solid var(--line);border-radius:10px;max-height:400px}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th,td{padding:8px 13px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+td.w{white-space:normal;min-width:230px}
+th{background:var(--tint);position:sticky;top:0;font-weight:600}tr:last-child td{border-bottom:0}
+.tag{display:inline-block;padding:1px 10px;border-radius:99px;font-size:13px;background:var(--tint);color:var(--acc);font-weight:500}
+.cap{margin-top:8px;font-size:14px}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:16px}
+.cols .card{margin-top:0}
+.bar{display:grid;grid-template-columns:minmax(90px,160px) 1fr 38px;gap:10px;align-items:center;margin:7px 0;font-size:14.5px}
+.bar i{display:block;height:15px;background:var(--acc);border-radius:3px}.bar b{text-align:right}
+.note{border-left:4px solid var(--acc);background:var(--tint);padding:12px 16px;border-radius:6px}
+.note ul{margin:0;padding-left:18px}.note li{margin:4px 0}
+.warn{border-left:4px solid var(--warn);background:var(--warnbg);padding:12px 16px;border-radius:6px;margin-top:14px}
+.xg{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
+.xc{border:1px solid var(--line);border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:8px}
+.xc p{flex:1;margin:0;font-size:14.5px;color:var(--mute)}
+.pager{display:flex;justify-content:space-between;gap:10px;margin-top:40px;padding-top:18px;border-top:1px solid var(--line);flex-wrap:wrap}
+#toast{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);background:var(--hd);color:#fff;padding:11px 18px;border-radius:8px;font-size:14.5px;opacity:0;pointer-events:none;transition:.2s;z-index:50;max-width:92vw;text-align:center}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+@media(max-width:860px){.auth{grid-template-columns:1fr}.side{display:none}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<input id="file" type="file" accept=".csv,.xlsx,.xls" hidden>
+
+<script>
+/* =====================  constants and helpers  ===================== */
+const FIELDS=[["id","Patient ID","Identifier",["patientid","id","pid","patientno","mrn"]],["age","Age","Numerical",["age","ageyears"]],["gender","Gender","Categorical",["gender","sex"]],["disease","Disease","Categorical",["disease","diagnosis","condition"]],["med","Medication","Categorical",["medication","drug","medicine"]],["dose","Dosage","Categorical",["dosage","dose"]]];
+const LAB=Object.fromEntries(FIELDS.map(f=>[f[0],f[1]]));
+const PH={gender:"Unknown",disease:"Unknown",med:"Not Recorded",dose:"Not Recorded"};
+const STRAT={age:["Median of valid ages","Robust to outliers and skewed age distributions; keeps a realistic central value."],
+ gender:["Placeholder 'Unknown'","Cannot be inferred reliably; using the most frequent value would inflate one category."],
+ disease:["Placeholder 'Unknown'","A diagnosis must never be guessed in a clinical dataset."],
+ med:["Placeholder 'Not Recorded'","Prescriptions cannot be inferred safely."],
+ dose:["Placeholder 'Not Recorded'","Doses are drug- and patient-specific; a typical value could be unsafe."]};
+const STEPS=[["Browse Dataset","Load the file, preview the records and review how the data is structured."],["Clean Up Data","Standardise the text, remove duplicate records, then find and fix missing information."],["Key Insights","All figures are calculated from the cleaned dataset. Placeholder values are excluded from rankings."],["Summary & Export","Review the main findings and save the cleaned results and the full report."]];
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const isNull=v=>v==null||/^\s*(|na|n\/a|nan|null|none|-)\s*$/i.test(String(v));
+const title=s=>s.toLowerCase().replace(/\b\w/g,c=>c.toUpperCase());
+const median=a=>{const s=[...a].sort((x,y)=>x-y),m=s.length>>1;return s.length%2?s[m]:(s[m-1]+s[m])/2};
+const mean=a=>a.reduce((x,y)=>x+y,0)/a.length;
+const sd=a=>{const m=mean(a);return Math.sqrt(a.reduce((x,y)=>x+(y-m)**2,0)/Math.max(a.length-1,1))};
+const f1=n=>Number.isInteger(n)?String(n):n.toFixed(1);
+const norm=h=>String(h).toLowerCase().replace(/[^a-z0-9]/g,"");
+const today=()=>new Date().toLocaleDateString(undefined,{day:"numeric",month:"long",year:"numeric"});
+let toastT;const toast=m=>{const t=$("toast");t.textContent=m;t.classList.add("on");clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove("on"),4200)};
+
+/* ---- storage (falls back to memory if the browser blocks it) ---- */
+const mem={};
+const store={get(k){try{return localStorage.getItem(k)}catch(e){return mem[k]??null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){mem[k]=v}}};
+const sess={get(k){try{return sessionStorage.getItem(k)}catch(e){return mem["s"+k]??null}},set(k,v){try{v==null?sessionStorage.removeItem(k):sessionStorage.setItem(k,v)}catch(e){mem["s"+k]=v}}};
+const users=()=>{try{return JSON.parse(store.get("hdc_users")||"[]")}catch(e){return[]}};
+
+async function hashPw(pw,salt){
+  try{const d=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(salt+pw));return[...new Uint8Array(d)].map(x=>x.toString(16).padStart(2,"0")).join("")}
+  catch(e){let h=5381;const s=salt+pw;for(let i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))|0;return"f"+h}
+}
+const newSalt=()=>{try{return[...crypto.getRandomValues(new Uint8Array(12))].map(x=>x.toString(16).padStart(2,"0")).join("")}catch(e){return String(Math.random()).slice(2)}};
+
+/* =====================  application state  ===================== */
+const S={user:null,tab:"login",view:"auth",rows:[],heads:[],map:{},name:"",loadedOn:"",R:null,model:null,visited:{}};
+
+/* =====================  analysis engine  ===================== */
+function analyze(){
+  const M=S.map;if(!M.id)return null;
+  const keys=FIELDS.map(f=>f[0]).filter(k=>M[k]);const rawN=S.rows.length;let badAge=0;
+  let recs=S.rows.map(r=>{const o={};keys.forEach(k=>{let v=r[M[k]];
+    if(isNull(v)){o[k]=null;return}
+    if(k==="age"){const n=parseFloat(v);if(isFinite(n)&&n>=0&&n<=120)o[k]=n;else{o[k]=null;badAge++}return}
+    v=String(v).trim().replace(/\s+/g," ");
+    o[k]=k==="id"?v.toUpperCase():k==="dose"?v.toLowerCase():title(v)});return o});
+  const missBefore={};keys.forEach(k=>missBefore[k]=recs.filter(r=>r[k]==null).length);
+  const noId=recs.filter(r=>r.id==null).length;recs=recs.filter(r=>r.id!=null);
+  const seen=new Set();let dupes=0;const dupList=[];
+  recs=recs.filter(r=>{const key=keys.map(k=>r[k]??"").join("\u0001");if(seen.has(key)){dupes++;dupList.push(r);return false}seen.add(key);return true});
+  const validAges=keys.includes("age")?recs.map(r=>r.age).filter(a=>a!=null):[];
+  const ageMed=validAges.length?Math.round(median(validAges)):null;
+  const imputed={};
+  keys.forEach(k=>{if(k==="id")return;imputed[k]=0;recs.forEach(r=>{if(r[k]==null){r[k]=k==="age"?ageMed:PH[k];imputed[k]++}})});
+  const N=recs.length,U=new Set(recs.map(r=>r.id)).size;
+  const idc={};recs.forEach(r=>idc[r.id]=(idc[r.id]||0)+1);
+  const multi=Object.values(idc).filter(c=>c>1).length;
+  const sp=new Set(),pat=[];recs.forEach(r=>{if(!sp.has(r.id)){sp.add(r.id);pat.push(r)}});
+  const ages=keys.includes("age")?pat.map(r=>r.age).filter(a=>a!=null):[];
+  const vc=(k,ph)=>{const c={};recs.forEach(r=>{if(r[k]!==ph)c[r[k]]=(c[r[k]]||0)+1});return Object.entries(c).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]))};
+  const cls=S.heads.map(h=>{const f=FIELDS.find(f=>M[f[0]]===h);const vals=S.rows.map(r=>r[h]).filter(v=>!isNull(v));
+    const type=f?f[2]:(vals.length&&vals.filter(v=>/^-?[\d.,]+$/.test(String(v).trim())).length/vals.length>.8?"Numerical":"Categorical");
+    return{h,type,n:vals.length,u:new Set(vals.map(v=>String(v).trim().toLowerCase())).size,m:rawN-vals.length,mapped:f?f[0]:null}});
+  return{keys,rawN,badAge,missBefore,noId,dupes,dupList,validAges,ageMed,imputed,filled:Object.values(imputed).reduce((a,b)=>a+b,0),recs,N,U,multi,ages,cls,
+    miss:Object.values(missBefore).reduce((a,b)=>a+b,0),
+    dis:M.disease?vc("disease","Unknown"):[],med:M.med?vc("med","Not Recorded"):[],gen:M.gender?vc("gender","Unknown"):[],
+    unk:{disease:recs.filter(r=>r.disease==="Unknown").length,med:recs.filter(r=>r.med==="Not Recorded").length,gender:recs.filter(r=>r.gender==="Unknown").length}};
+}
+
+/* ---- report model: one structure feeds the screen, the Word file and the PDF ---- */
+function buildModel(R,lim){
+  const{keys,rawN}=R,M=S.map,L=k=>LAB[k];
+  const sub=(n,h)=>({t:"sub",n,h}),p=x=>({t:"p",x});
+  const s1=[sub("1.1","Load and Preview Records"),
+    {t:"kv",items:[["Source file",S.name],["Records",rawN],["Columns",S.heads.length],["Loaded on",S.loadedOn]]},
+    {t:"table",head:S.heads,rows:S.rows.slice(0,8).map(r=>S.heads.map(h=>r[h]==null||String(r[h]).trim()===""?"(empty)":String(r[h]))),cap:"Showing the first 8 of "+rawN+" records."},
+    sub("1.2","Check Column Types"),
+    {t:"table",head:["Column","Variable Type","Non-Null Count","Distinct Values","Missing"],rows:R.cls.map(c=>[c.h+(c.mapped&&norm(c.h)!==norm(L(c.mapped))?" ("+L(c.mapped)+")":""),c.type,c.n,c.u,c.m+" ("+(c.m/rawN*100).toFixed(1)+"%)"])},
+    sub("1.3","Review Summary Statistics"),
+    R.validAges.length?{t:"table",head:["Variable","Count","Mean","Median","Std. Deviation","Minimum","Maximum"],rows:[["Age",R.validAges.length,f1(mean(R.validAges)),f1(median(R.validAges)),f1(sd(R.validAges)),Math.min(...R.validAges),Math.max(...R.validAges)]]}:p("Map an Age column to see numerical summary statistics.")];
+
+  const s2=[sub("2.1","Detect and Remove Duplicates"),
+    {t:"table",head:["Check","Description","Outcome"],wrap:[1],rows:[
+      ["Text standardisation","Spaces trimmed; Title Case for gender, disease and medication; lower case for dosage; upper case for IDs. Done first so formatting variants match.",rawN+" records processed"],
+      ["Missing Patient ID","Records that cannot be linked to a patient are dropped.",R.noId+" removed"],
+      ["Exact duplicates","Records identical in every mapped field are removed, keeping the first. Repeated IDs with different details are kept as genuine repeat visits.",R.dupes+" removed"]]},
+    R.dupList.length?{t:"table",head:keys.map(L),rows:R.dupList.slice(0,20).map(r=>keys.map(k=>r[k]==null?"":String(r[k]))),cap:"Duplicate records removed"+(R.dupList.length>20?" (first 20 of "+R.dupList.length+")":"")+"."}:p("No exact duplicate records were found."),
+    sub("2.2","Find Missing Information"),
+    {t:"table",head:["Variable","Missing Values","Percentage of Records"],rows:keys.map(k=>[L(k),R.missBefore[k],(R.missBefore[k]/rawN*100).toFixed(1)+"%"])},
+    p((R.badAge?"Includes "+R.badAge+" Age value(s) that were not numbers or fell outside 0-120 and were treated as missing. ":"")+'Blank, NA, null and "-" entries are counted as missing.'),
+    sub("2.3","Fix Missing Data"),
+    {t:"table",head:["Variable","Imputation Method","Rationale","Missing Before","Imputed"],wrap:[1,2],rows:keys.filter(k=>k!=="id").map(k=>[L(k),STRAT[k][0]+(k==="age"&&R.ageMed!=null?" ("+R.ageMed+")":""),STRAT[k][1],R.missBefore[k],R.imputed[k]])},
+    p("Clinical fields are labelled as missing rather than estimated, so no fabricated clinical information enters the dataset."),
+    {t:"table",head:["Metric","Raw Dataset","Cleaned Dataset"],rows:[["Total records",rawN,R.N],["Missing cells",R.miss,0],["Exact duplicate rows",R.dupes,0]]},
+    {t:"table",head:keys.map(L),rows:R.recs.slice(0,lim).map(r=>keys.map(k=>String(r[k]))),cap:"Cleaned dataset"+(R.N>lim?" (first "+lim+" of "+R.N+" records; download the CSV for all records)":"")+"."}];
+
+  const bars=(h,items,note)=>({h,items:items.slice(0,10),note});
+  const cards=[bars("Most Common Diseases",R.dis,M.disease?R.unk.disease+" records with unknown disease excluded.":"Disease column not mapped."),
+               bars("Most Frequently Prescribed Medications",R.med,M.med?R.unk.med+" records with no medication excluded.":"Medication column not mapped.")];
+  if(M.gender)cards.push(bars("Gender Distribution",R.gen,R.unk.gender+" records with unknown gender excluded."));
+  const s3=[sub("3.1","Record Count & Totals"),
+    {t:"kpis",items:[[R.N,"Total patient records"],[R.U,"Unique patients"],[(R.N/R.U).toFixed(2),"Records per patient"],[R.multi,"Patients with several records"]]},
+    sub("3.2","Category Frequency & Distribution"),{t:"bars",cards},
+    sub("3.3","Numerical Averages & Metrics"),
+    R.ages.length?{t:"kpis",items:[[f1(mean(R.ages)),"Average age (years)"],[f1(median(R.ages)),"Median age (years)"],[f1(sd(R.ages)),"Standard deviation"],[Math.min(...R.ages)+" to "+Math.max(...R.ages),"Age range"]]}:p("Map an Age column to see numerical averages."),
+    R.ages.length?p("Age metrics are calculated once per unique patient, so repeat visits do not carry extra weight."):p("")];
+
+  const T=[R.N+" records belong to "+R.U+" unique patients ("+(R.N/R.U).toFixed(2)+" records per patient)."];
+  if(R.ages.length)T.push("The average patient age is "+f1(mean(R.ages))+" years (median "+f1(median(R.ages))+", range "+Math.min(...R.ages)+" to "+Math.max(...R.ages)+").");
+  if(R.dis[0])T.push("The most common disease is "+R.dis[0][0]+" ("+R.dis[0][1]+" records).");
+  if(R.med[0])T.push("The most prescribed medication is "+R.med[0][0]+" ("+R.med[0][1]+" prescriptions).");
+  T.push("Cleaning removed "+R.dupes+" duplicate records, dropped "+R.noId+" records with no Patient ID and filled "+R.filled+" missing cells.");
+  const s4=[sub("4.1","Key Takeaways"),{t:"list",items:T}];
+  return[s1,s2,s3,s4].map((blocks,i)=>({n:i+1,title:STEPS[i][0],desc:STEPS[i][1],blocks}));
+}
+
+/* =====================  screen rendering  ===================== */
+const cell=(c,h)=>c==="(empty)"?'<span class="mute">empty</span>':h==="Variable Type"?'<span class="tag">'+esc(c)+'</span>':esc(c);
+function rb(b){switch(b.t){
+  case"sub":return'<h3><em>'+b.n+'</em>'+esc(b.h)+'</h3>';
+  case"p":return b.x?'<p class="mute">'+esc(b.x)+'</p>':"";
+  case"kv":return'<div class="meta">'+b.items.map(([k,v])=>'<div><b>'+esc(k)+'</b>'+esc(v)+'</div>').join("")+'</div>';
+  case"kpis":return'<div class="kpis">'+b.items.map(([v,l])=>'<div class="kpi"><b>'+esc(v)+'</b><span>'+esc(l)+'</span></div>').join("")+'</div>';
+  case"table":return'<div class="tw"><table><thead><tr>'+b.head.map(h=>'<th>'+esc(h)+'</th>').join("")+'</tr></thead><tbody>'+b.rows.map(r=>'<tr>'+r.map((c,i)=>'<td'+(b.wrap&&b.wrap.includes(i)?' class="w"':'')+'>'+cell(String(c),b.head[i])+'</td>').join("")+'</tr>').join("")+'</tbody></table></div>'+(b.cap?'<p class="mute cap">'+esc(b.cap)+'</p>':"");
+  case"bars":return'<div class="cols">'+b.cards.map(c=>'<div class="card"><h4>'+esc(c.h)+'</h4>'+(c.items.length?c.items.map(([l,n])=>'<div class="bar"><span>'+esc(l)+'</span><i style="width:'+(n/c.items[0][1]*100)+'%"></i><b>'+n+'</b></div>').join(""):'<p class="mute">No data available.</p>')+'<p class="mute small">'+esc(c.note)+'</p></div>').join("")+'</div>';
+  case"list":return'<div class="note"><ul>'+b.items.map(x=>'<li>'+esc(x)+'</li>').join("")+'</ul></div>';
+}return""}
+
+const sectionHead=(n,t,d)=>'<div class="ph"><div><h1>'+(n?'Step '+n+': ':'')+esc(t)+'</h1><p class="mute">'+esc(d)+'</p></div>'+
+  (S.R?'<div class="chip"><span title="'+esc(S.name)+'">'+esc(S.name)+'</span><span class="mute" style="font-weight:400">'+S.R.rawN+' records</span><button class="btn alt sm" data-act="change">Change dataset</button></div>':'')+'</div>';
+
+function uploadHTML(){
+  let h=sectionHead(0,"Upload Data","Select a CSV or Excel file containing your patient records. The file is read in your browser and is never uploaded.");
+  h+='<div id="drop" tabindex="0" role="button" data-act="browse" aria-label="Choose a CSV or Excel file"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#1f7a6d" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3"/></svg><p><b>Drop a file here, or click to browse</b></p><p class="mute small">Supported formats: .csv, .xlsx, .xls (first sheet is used)</p></div>';
+  h+='<div class="row"><button class="btn alt" data-act="sample">Use sample dataset</button><span class="mute small">A synthetic dataset with duplicates and missing values, for a quick demonstration.</span></div>';
+  if(S.rows.length){
+    h+='<div class="card"><h4>Column mapping</h4><p class="mute">Columns are matched by name automatically. Adjust any that are wrong.</p><div class="map">'+
+      FIELDS.map(([k,l])=>'<label>'+l+'<select data-k="'+k+'"><option value="">(not in dataset)</option>'+S.heads.map(x=>'<option'+(S.map[k]===x?" selected":"")+' value="'+esc(x)+'">'+esc(x)+'</option>').join("")+'</select></label>').join("")+'</div></div>';
+    h+=S.R?'<div class="row"><button class="btn" data-act="go" data-to="1">Continue to Step 1: Browse Dataset</button><span class="mute small">'+esc(S.name)+': '+S.R.rawN+' records, '+S.heads.length+' columns</span></div>'
+          :'<div class="warn">Select the column that holds the <b>Patient ID</b> to continue. It is needed to count unique patients and detect duplicates.</div>';
+  }else h+='<div class="card"><h4>Expected columns</h4><p class="mute">Patient_ID, Age, Gender, Disease, Medication and Dosage. Header names such as "Sex", "Diagnosis" or "Drug" are recognised automatically, and you can adjust the mapping after loading.</p></div>';
+  return h;
+}
+
+function stepHTML(n){
+  const m=S.model[n-1];let h=sectionHead(n,m.title,m.desc)+m.blocks.map(rb).join("");
+  if(n===4){h+='<h3><em>4.2</em>Save and Share Results</h3><div class="xg">'+
+    '<div class="xc"><h4>Word document</h4><p>The complete report with tables and charts, ready to edit in Microsoft Word.</p><button class="btn" data-act="doc">Download Word (.doc)</button></div>'+
+    '<div class="xc"><h4>PDF report</h4><p>A formatted, print-ready copy of the full report.</p><button class="btn" data-act="pdf">Download PDF</button></div>'+
+    '<div class="xc"><h4>Cleaned data</h4><p>The cleaned dataset with every record, for further analysis.</p><button class="btn alt" data-act="csv">Download CSV</button></div>'+
+    '<div class="xc"><h4>Summary text</h4><p>Copy the key takeaways to paste into an email or document.</p><button class="btn alt" data-act="copy">Copy summary</button></div></div>';}
+  const prev=n===1?["upload","Upload Data"]:[n-1,"Step "+(n-1)+": "+STEPS[n-2][0]],next=n<4?[n+1,"Step "+(n+1)+": "+STEPS[n][0]]:null;
+  h+='<div class="pager"><button class="btn alt" data-act="go" data-to="'+prev[0]+'">Back: '+esc(prev[1])+'</button>'+(next?'<button class="btn" data-act="go" data-to="'+next[0]+'">Next: '+esc(next[1])+'</button>':'')+'</div>';
+  return h;
+}
+
+function authHTML(){
+  const reg=S.tab==="reg";
+  const fld=(id,l,type,ac)=>'<div class="fld"><label for="'+id+'">'+l+'</label><div class="ctl"><input id="'+id+'" type="'+type+'" autocomplete="'+ac+'">'+(type==="password"&&id==="pw"?'<button type="button" class="eye" data-act="pw" aria-label="Show or hide password">Show</button>':"")+'</div></div>';
+  const tick='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1f7a6d" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+  return'<div class="auth"><aside class="side"><div class="brand"><span class="logo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span>HealthData Studio</div>'+
+  '<h2>Clean, analyse and report on patient data in one place</h2><p class="mute">A guided workflow for preparing hospital and clinic datasets for analysis.</p>'+
+  '<ul class="feat"><li>'+tick+'<span>Upload a CSV or Excel file and review its structure</span></li><li>'+tick+'<span>Remove duplicates and fix missing values with documented methods</span></li><li>'+tick+'<span>See record totals, common diseases, medications and age metrics</span></li><li>'+tick+'<span>Download a complete report as a Word document or PDF</span></li></ul></aside>'+
+  '<section class="pane"><div class="box" id="authbox"><h1>'+(reg?"Create your account":"Welcome back")+'</h1><p class="mute">'+(reg?"Register to start analysing patient datasets.":"Sign in to continue to your workspace.")+'</p>'+
+  '<div class="tabs" role="tablist"><button role="tab" aria-selected="'+!reg+'" data-act="tab-login">Sign In</button><button role="tab" aria-selected="'+reg+'" data-act="tab-reg">Create Account</button></div>'+
+  (reg?fld("nm","Full name","text","name"):"")+fld("em","Email address","email","email")+fld("pw","Password","password",reg?"new-password":"current-password")+(reg?fld("pw2","Confirm password","password","new-password")+'<p class="mute small" style="margin-top:-6px">At least 8 characters, including a letter and a number.</p>':"")+
+  '<div class="err" id="aerr" role="alert"></div><button class="btn wide" data-act="'+(reg?"register":"login")+'">'+(reg?"Create Account":"Sign In")+'</button>'+
+  '<p class="small mute" style="margin-top:14px">'+(reg?'Already registered? <a href="#" data-act="tab-login">Sign in</a>':'New here? <a href="#" data-act="tab-reg">Create an account</a>')+'</p>'+
+  '<p class="small mute fine">Accounts are stored only in this browser, on this device. Datasets are processed locally and are never uploaded.</p></div></section></div>';
+}
+
+function shellHTML(){
+  return'<div class="top"><div class="bar1"><div class="brand"><span class="logo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span>HealthData Studio</div>'+
+  '<div class="usr"><span>Signed in as <b>'+esc(S.user.name)+'</b></span><button class="btn alt sm" data-act="signout">Sign out</button></div></div><nav aria-label="Workflow steps"><ol class="stp" id="stp"></ol></nav></div><main id="view"></main>';
+}
+function drawStepper(){
+  const items=[["upload","Upload Data"],...STEPS.map((s,i)=>[i+1,s[0]])];
+  $("stp").innerHTML=items.map(([k,l],i)=>{const dis=k!=="upload"&&!S.R,on=S.view===k,done=!on&&(k==="upload"?!!S.R:S.visited[k]);
+    return'<li><button class="si'+(on?" on":"")+(done?" done":"")+'" data-act="go" data-to="'+k+'"'+(dis?" disabled":"")+(on?' aria-current="step"':"")+'><i>'+(done?"&#10003;":k==="upload"?"&#8593;":k)+'</i>'+(k==="upload"?"":"Step "+k+": ")+esc(l)+'</button></li>'}).join("");
+}
+function drawView(){
+  if(S.view==="upload")$("view").innerHTML=uploadHTML();
+  else if(S.R)$("view").innerHTML=stepHTML(S.view);
+  else{S.view="upload";$("view").innerHTML=uploadHTML()}
+  drawStepper();
+}
+function go(v){S.view=v;if(typeof v==="number")S.visited[v]=true;drawView();window.scrollTo(0,0)}
+function render(){
+  if(!S.user){S.view="auth";$("app").innerHTML=authHTML();document.title="Sign in | HealthData Studio";return}
+  $("app").innerHTML=shellHTML();if(S.view==="auth")S.view="upload";drawView();document.title="HealthData Studio";
+}
+
+/* =====================  data loading  ===================== */
+function reanalyse(){S.R=analyze();S.model=S.R?buildModel(S.R,100):null}
+function setData(rows,name){
+  S.rows=rows;S.heads=Object.keys(rows[0]);S.name=name;S.map={};S.loadedOn=today();S.visited={};
+  FIELDS.forEach(([k,,,al])=>{const h=S.heads.find(h=>al.includes(norm(h)));if(h)S.map[k]=h});
+  reanalyse();
+  if(S.view==="upload"||!S.R){S.view="upload";drawView()}else drawView();
+  toast(S.R?'Dataset loaded: "'+name+'" ('+S.R.rawN+' records).':"Dataset loaded. Please select the Patient ID column.");
+}
+function loadFile(f){
+  const r=new FileReader();
+  r.onload=()=>{try{
+    const wb=XLSX.read(r.result,{type:"array"});
+    const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:null});
+    if(!rows.length)throw new Error("The first sheet has no data rows.");
+    setData(rows,f.name)}catch(e){toast("Could not read this file: "+e.message)}};
+  r.onerror=()=>toast("The file could not be read.");
+  r.readAsArrayBuffer(f);
+}
+function sample(){
+  let s=42;const rnd=()=>{s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
+  const T={Diabetes:[["Metformin","500 mg"],["Glimepiride","2 mg"]],Hypertension:[["Amlodipine","5 mg"],["Losartan","50 mg"]],Asthma:[["Salbutamol","100 mcg"],["Montelukast","10 mg"]],Tuberculosis:[["Rifampicin","450 mg"],["Isoniazid","300 mg"]],Anaemia:[["Ferrous Sulfate","200 mg"],["Folic Acid","5 mg"]],Pneumonia:[["Amoxicillin","500 mg"],["Azithromycin","250 mg"]]};
+  const D=Object.keys(T),W=[.28,.24,.14,.08,.12,.14];
+  const pick=()=>{let r=rnd(),a=0;for(let i=0;i<D.length;i++){a+=W[i];if(r<a)return D[i]}return D[0]};
+  const rows=[];
+  for(let i=1;i<=40;i++){const d=pick(),[m,ds]=T[d][rnd()<.5?0:1];rows.push({Patient_ID:"P"+String(i).padStart(3,"0"),Age:18+Math.floor(rnd()*67),Gender:rnd()<.5?"Male":"Female",Disease:d,Medication:m,Dosage:ds})}
+  [3,11,25].forEach(i=>rows[i].Age=null);[7,19].forEach(i=>rows[i].Gender=null);rows[14].Disease=null;[22,33].forEach(i=>rows[i].Medication=null);[22,37].forEach(i=>rows[i].Dosage=null);
+  rows[5].Gender="  male ";rows[16].Gender="FEMALE";rows[9].Disease="diabetes ";rows[28].Medication="metformin";rows[30].Age="abc";
+  [2,8,15].forEach(i=>rows.push({...rows[i]}));
+  const alt=T[rows[0].Disease].find(t=>t[0]!==rows[0].Medication);rows.push({...rows[0],Medication:alt[0],Dosage:alt[1]});
+  return rows;
+}
+
+/* =====================  exports  ===================== */
+const baseName=()=>(S.name.replace(/\.[^.]+$/,"").replace(/[^\w-]+/g,"_").replace(/^_+|_+$/g,"")||"dataset")+"_report";
+function saveBlob(name,type,content){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([content],{type}));a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000)}
+
+function exportCSV(){
+  const R=S.R,q=v=>'"'+String(v).replace(/"/g,'""')+'"';
+  const csv=[R.keys.map(k=>q(S.map[k])).join(",")].concat(R.recs.map(r=>R.keys.map(k=>q(r[k])).join(","))).join("\r\n");
+  saveBlob("cleaned_"+baseName().replace(/_report$/,"")+".csv","text/csv;charset=utf-8","\ufeff"+csv);toast("Cleaned data downloaded as CSV.");
+}
+
+function exportWord(){
+  const secs=buildModel(S.R,50);
+  const T=(head,rows,hdr=true)=>'<table border="1" cellspacing="0" cellpadding="5" style="border-collapse:collapse;border:1px solid #c8d6d3;width:100%;margin:6px 0 10px;font-size:9.5pt">'+(hdr?'<tr>'+head.map(h=>'<th bgcolor="#E3F1EE" align="left" style="border:1px solid #c8d6d3">'+esc(h)+'</th>').join("")+'</tr>':"")+rows.map(r=>'<tr>'+r.map(c=>'<td style="border:1px solid #c8d6d3">'+esc(c)+'</td>').join("")+'</tr>').join("")+'</table>';
+  const wb=b=>{switch(b.t){
+    case"sub":return'<h3>'+b.n+'&nbsp;&nbsp;'+esc(b.h)+'</h3>';
+    case"p":return b.x?'<p style="color:#5f7378">'+esc(b.x)+'</p>':"";
+    case"kv":return T([],b.items.map(([k,v])=>[k,v]),false);
+    case"kpis":return'<table border="1" cellspacing="0" cellpadding="8" style="border-collapse:collapse;border:1px solid #c8d6d3;width:100%;margin:6px 0 10px"><tr>'+b.items.map(([v,l])=>'<td align="center" style="border:1px solid #c8d6d3"><b style="font-size:16pt;color:#1F7A6D">'+esc(v)+'</b><br><span style="color:#5f7378;font-size:9pt">'+esc(l)+'</span></td>').join("")+'</tr></table>';
+    case"table":return T(b.head,b.rows)+(b.cap?'<p style="color:#5f7378;font-size:9pt">'+esc(b.cap)+'</p>':"");
+    case"bars":return b.cards.map(c=>'<h4>'+esc(c.h)+'</h4>'+(c.items.length?'<table cellspacing="0" cellpadding="3" style="width:100%;border-collapse:collapse">'+c.items.map(([l,n])=>{const w=Math.max(2,Math.round(n/c.items[0][1]*100));return'<tr><td width="30%">'+esc(l)+'</td><td width="60%"><table cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse"><tr><td width="'+w+'%" bgcolor="#1F7A6D" height="12">&nbsp;</td><td>&nbsp;</td></tr></table></td><td width="10%" align="right"><b>'+n+'</b></td></tr>'}).join("")+'</table>':"<p>No data available.</p>")+'<p style="color:#5f7378;font-size:9pt">'+esc(c.note)+'</p>').join("");
+    case"list":return'<ul>'+b.items.map(x=>'<li>'+esc(x)+'</li>').join("")+'</ul>';
+  }return""};
+  const body='<h1 class="t">HealthData Studio</h1><p class="s">Analysis and Cleaning Report</p>'+
+    T([],[["Prepared by",S.user.name],["Date",today()],["Dataset",S.name],["Records",S.R.rawN+" (columns: "+S.heads.length+")"]],false)+
+    secs.map(s=>'<h2>Step '+s.n+': '+esc(s.title)+'</h2><p style="color:#5f7378">'+esc(s.desc)+'</p>'+s.blocks.map(wb).join("")).join("");
+  const html='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>HealthData Studio Report</title><style>@page{size:A4;margin:2cm}body{font-family:Calibri,Arial,sans-serif;font-size:10.5pt;color:#14262B}h1.t{font-size:24pt;color:#0F3D3E;margin:0}p.s{font-size:13pt;color:#1F7A6D;margin:0 0 14pt}h2{font-size:15pt;color:#0F3D3E;border-bottom:1.5pt solid #1F7A6D;padding-bottom:3pt;margin-top:22pt}h3{font-size:12pt;color:#1F7A6D;margin:14pt 0 4pt}h4{font-size:11pt;margin:10pt 0 4pt}</style></head><body>'+body+'</body></html>';
+  saveBlob(baseName()+".doc","application/msword;charset=utf-8","\ufeff"+html);toast("Word report downloaded.");
+}
+
+function exportPDF(){
+  const J=window.jspdf;
+  if(!J||!J.jsPDF){toast("The PDF library could not load. Connect to the internet and reload, or use your browser's Print option.");return}
+  const secs=buildModel(S.R,50),doc=new J.jsPDF({unit:"pt",format:"a4"}),W=doc.internal.pageSize.getWidth(),H=doc.internal.pageSize.getHeight(),m=42;
+  const INK=[20,38,43],MUTE=[95,115,120],ACC=[31,122,109];let y=0;
+  const need=h=>{if(y+h>H-56){doc.addPage();y=m}};
+  const text=(t,size,color,bold,gap)=>{doc.setFont("helvetica",bold?"bold":"normal");doc.setFontSize(size);doc.setTextColor(...color);
+    doc.splitTextToSize(String(t),W-2*m).forEach(l=>{need(size+3);doc.text(l,m,y);y+=size*1.3});y+=gap||0};
+  const tbl=(head,rows,opt)=>{need(40);doc.autoTable(Object.assign({startY:y,head:head?[head]:undefined,body:rows.map(r=>r.map(String)),margin:{left:m,right:m,bottom:56},theme:"grid",
+    styles:{fontSize:head&&head.length>6?7:8.5,cellPadding:3,lineColor:[223,231,229],lineWidth:.5,textColor:INK,overflow:"linebreak"},headStyles:{fillColor:ACC,textColor:255,fontStyle:"bold"}},opt||{}));y=doc.lastAutoTable.finalY+10};
+  doc.setFillColor(15,61,62);doc.rect(0,0,W,100,"F");
+  doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(24);doc.text("HealthData Studio",m,50);
+  doc.setFont("helvetica","normal");doc.setFontSize(12);doc.text("Analysis and Cleaning Report",m,72);
+  y=122;tbl(null,[["Prepared by",S.user.name],["Date",today()],["Dataset",S.name],["Records",S.R.rawN+" (columns: "+S.heads.length+")"]],{theme:"plain",columnStyles:{0:{fontStyle:"bold",cellWidth:90}},styles:{fontSize:10,cellPadding:3,textColor:INK}});
+  secs.forEach(s=>{
+    y+=14;need(80);text("Step "+s.n+": "+s.title,16,[15,61,62],true,2);
+    doc.setDrawColor(...ACC);doc.setLineWidth(1.2);doc.line(m,y-4,W-m,y-4);y+=12;text(s.desc,9.5,MUTE,false,6);
+    s.blocks.forEach(b=>{switch(b.t){
+      case"sub":need(44);y+=10;text(b.n+"   "+b.h,12,ACC,true,3);break;
+      case"p":if(b.x)text(b.x,9.5,MUTE,false,4);break;
+      case"kv":tbl(null,b.items,{theme:"plain",columnStyles:{0:{fontStyle:"bold",cellWidth:90}},styles:{fontSize:9.5,cellPadding:2.5,textColor:INK}});break;
+      case"kpis":tbl(b.items.map(i=>i[1]),[b.items.map(i=>i[0])],{styles:{fontSize:11,halign:"center",cellPadding:6,textColor:INK,lineColor:[223,231,229],lineWidth:.5},headStyles:{fillColor:[238,246,244],textColor:MUTE,fontSize:8.5,halign:"center",fontStyle:"normal"}});break;
+      case"table":tbl(b.head,b.rows);if(b.cap)text(b.cap,8.5,MUTE,false,6);break;
+      case"bars":b.cards.forEach(c=>{need(40);text(c.h,10.5,INK,true,2);
+        if(!c.items.length)text("No data available.",9,MUTE,false,2);
+        c.items.forEach(([l,n])=>{need(16);doc.setFont("helvetica","normal");doc.setFontSize(9);doc.setTextColor(...INK);doc.text(String(l).slice(0,32),m,y+8);
+          doc.setFillColor(...ACC);doc.rect(m+150,y,Math.max(3,n/c.items[0][1]*250),10,"F");doc.text(String(n),m+150+Math.max(3,n/c.items[0][1]*250)+6,y+8);y+=15});
+        y+=8;text(c.note,8.5,MUTE,false,8)});break;
+      case"list":b.items.forEach(x=>text("-  "+x,10,INK,false,2));y+=4;break;
+    }});
+  });
+  const n=doc.getNumberOfPages();
+  for(let i=1;i<=n;i++){doc.setPage(i);doc.setFontSize(8);doc.setTextColor(...MUTE);doc.setFont("helvetica","normal");doc.text("HealthData Studio  |  "+S.name,m,H-24);doc.text("Page "+i+" of "+n,W-m,H-24,{align:"right"})}
+  doc.save(baseName()+".pdf");toast("PDF report downloaded.");
+}
+
+/* =====================  authentication  ===================== */
+const authErr=m=>{const e=$("aerr");if(e)e.textContent=m};
+async function doRegister(){
+  const name=$("nm").value.trim(),email=$("em").value.trim().toLowerCase(),pw=$("pw").value,pw2=$("pw2").value;
+  if(!name)return authErr("Enter your full name.");
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email))return authErr("Enter a valid email address.");
+  if(pw.length<8||!/[A-Za-z]/.test(pw)||!/\d/.test(pw))return authErr("Password must be at least 8 characters with a letter and a number.");
+  if(pw!==pw2)return authErr("The two passwords do not match.");
+  const list=users();if(list.some(u=>u.email===email))return authErr("An account with this email already exists. Please sign in.");
+  const salt=newSalt();list.push({name,email,salt,hash:await hashPw(pw,salt)});store.set("hdc_users",JSON.stringify(list));
+  startSession({name,email});
+}
+async function doLogin(){
+  const email=$("em").value.trim().toLowerCase(),pw=$("pw").value;
+  if(!email||!pw)return authErr("Enter your email and password.");
+  const u=users().find(u=>u.email===email);
+  if(!u||await hashPw(pw,u.salt)!==u.hash)return authErr("Incorrect email or password.");
+  startSession(u);
+}
+function startSession(u){S.user={name:u.name,email:u.email};sess.set("hdc_session",u.email);S.view="upload";render();toast("Welcome, "+u.name.split(" ")[0]+".")}
+function signOut(){sess.set("hdc_session",null);S.user=null;S.rows=[];S.heads=[];S.map={};S.R=null;S.model=null;S.visited={};S.tab="login";render()}
+
+/* =====================  events  ===================== */
+const ACT={
+  "tab-login":()=>{S.tab="login";render()},"tab-reg":()=>{S.tab="reg";render()},
+  login:doLogin,register:doRegister,signout:signOut,
+  pw:t=>{const i=t.parentNode.querySelector("input");i.type=i.type==="password"?"text":"password";t.textContent=i.type==="password"?"Show":"Hide"},
+  go:t=>{const v=t.dataset.to;go(v==="upload"?v:+v)},
+  change:()=>$("file").click(),browse:()=>$("file").click(),
+  sample:()=>setData(sample(),"Sample dataset (synthetic)"),
+  doc:exportWord,pdf:exportPDF,csv:exportCSV,
+  copy:()=>{const txt="HealthData Studio: "+S.name+"\n"+S.model[3].blocks[1].items.join("\n");
+    (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>toast("Summary copied to clipboard."),()=>toast("Copy is blocked in this browser. Select the Key Takeaways and copy them manually."))}
+};
+document.addEventListener("click",e=>{const t=e.target.closest("[data-act]");if(!t||t.disabled)return;e.preventDefault();const f=ACT[t.dataset.act];if(f)f(t)});
+document.addEventListener("keydown",e=>{
+  if(e.key==="Enter"&&e.target.closest("#authbox")&&e.target.tagName==="INPUT"){const b=document.querySelector("#authbox .btn.wide");if(b)b.click()}
+  if((e.key==="Enter"||e.key===" ")&&e.target.id==="drop"){e.preventDefault();$("file").click()}});
+document.addEventListener("change",e=>{
+  if(e.target.id==="file"){const f=e.target.files[0];if(f)loadFile(f);e.target.value="";return}
+  const k=e.target.dataset&&e.target.dataset.k;
+  if(k){if(e.target.value)S.map[k]=e.target.value;else delete S.map[k];reanalyse();drawView()}});
+["dragover","dragleave","drop"].forEach(ev=>document.addEventListener(ev,e=>{
+  const d=e.target.closest&&e.target.closest("#drop");if(!d)return;e.preventDefault();
+  if(ev==="dragover")d.classList.add("on");else d.classList.remove("on");
+  if(ev==="drop"&&e.dataTransfer.files[0])loadFile(e.dataTransfer.files[0])}));
+window.addEventListener("dragover",e=>e.preventDefault());window.addEventListener("drop",e=>e.preventDefault());
+
+/* =====================  start  ===================== */
+(function init(){const em=sess.get("hdc_session");const u=em&&users().find(u=>u.email===em);if(u)S.user={name:u.name,email:u.email};render()})();
+</script>
+</body>
+</html>
